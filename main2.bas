@@ -55,7 +55,7 @@ Sub Activity_Create(FirstTime As Boolean)
 	LabTMIN.Text = Main.parts(4) ''PREHEAT_TIME_IN
 	LabTMOUT.Text = Main.parts(5)''PREHEAT_TIME_OUT
 	'''''''''''''''''''''''''''''''''''
-	EditPHNO.Text = Main.parts(6) '' PREHEAT_OVEN_NO
+	EditPHNO.Text = Main.parts(6) '' PREHEAT_OVEN_NO test
 	EditQty.Text = Main.parts(7) ''qty
 	EditLoadNo.Text = Main.parts(8) '' Load No
 	EditSBT.Text = Main.parts(9) ''SALT_BATH_TEMP_ACTUAL
