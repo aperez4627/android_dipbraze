@@ -1,0 +1,373 @@
+﻿Build1=Default,com.bis.dip
+File1=main1.bal
+File2=main2.bal
+File3=settings.bal
+FileGroup1=Default Group
+FileGroup2=Default Group
+FileGroup3=Default Group
+Group=Default Group
+IconFile=
+Library1=core
+Library2=httputils2
+Library3=http
+Library4=json
+Library5=stringutils
+Library6=reflection
+Library7=randomaccessfile
+Library8=phone
+ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="5" android:targetSdkVersion="19"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~'End of default text.~\n~
+Module1=Starter
+Module2=main2
+Module3=StateManager
+Module4=settingsApp
+NumberOfFiles=3
+NumberOfLibraries=8
+NumberOfModules=4
+Version=7.8
+@EndOfDesignText@
+#Region  Project Attributes 
+	#ApplicationLabel: DIPBRAZE Furnace
+	#VersionCode: 1
+	#VersionName: 
+	'SupportedOrientations possible values: unspecified, landscape or portrait.
+	#SupportedOrientations: unspecified
+	#CanInstallToExternalStorage: False
+#End Region
+
+#Region  Activity Attributes 
+	#FullScreen: False
+	#IncludeTitle: True
+#End Region
+
+Sub Process_Globals
+	'These global variables will be declared once when the application starts.
+	'These variables can be accessed from all modules.
+	Dim empscanurl As String 
+	Dim ordscanurl As String 
+	'Dim accepturl As String =  "http://bisapps.biscomputer.com/apex/bis/api/dipfurnace/accept/"
+	Dim updateurl As String 
+	Dim EmpId As String = ""
+	Dim OrderNo As String = ""
+	Dim FurnaceCardNo As String = "" 
+	Dim Parts() As String
+End Sub
+
+Sub Globals
+	'These global variables will be redeclared each time the activity is created.
+	'These variables can only be accessed from this module.
+
+	Private BuOpen As Button
+	Private LabEmpName As Label
+	Private EditEmployeeID As EditText
+
+	Private EditOrderCtl As EditText
+	Private LabOrderCtl As Label
+	
+
+	''''''''''''
+
+End Sub
+
+Sub Activity_Create(FirstTime As Boolean)
+	'Do not forget to load the layout file created with the visual designer. For example:
+	Activity.LoadLayout("main1")
+	'Activity.AddMenuItem("Settings","Settings")
+	If StateManager.GetSetting("EMP_URL") = "" Then
+		StateManager.SetSetting("EMP_URL","http://bisapps.biscomputer.com/apex/bis/api/dipfurnace/furnace/")
+	End If
+	
+	If StateManager.GetSetting("ORD_URL") = "" Then
+		StateManager.SetSetting("ORD_URL","http://bisapps.biscomputer.com/apex/bis/api/dipfurnace/order/")
+	End If
+	
+	If StateManager.GetSetting("UPDATE_URL") = "" Then
+		StateManager.SetSetting("UPDATE_URL","http://bisapps.biscomputer.com/apex/bis/api/dipfurnace/update/")
+	End If
+	
+	empscanurl =  StateManager.GetSetting("EMP_URL")
+	ordscanurl  =  StateManager.GetSetting("ORD_URL")
+	'Dim accepturl As String =  "http://bisapps.biscomputer.com/apex/bis/api/dipfurnace/accept/"
+	updateurl  =  StateManager.GetSetting("UPDATE_URL")
+	'empscanurl =  "http://bisapps.biscomputer.com/apex/bis/api/dipfurnace/furnace/"
+End Sub
+
+Sub Activity_Resume124
+	
+	OrderNo = ""
+	FurnaceCardNo = ""
+	EditOrderCtl.Text = ""
+	LabOrderCtl.Text =""
+	
+	EditEmployeeID.Text = ""
+	EmpId = ""
+	LabEmpName.Text = "" 
+	If EditEmployeeID.Text <> "" Then
+	    EditOrderCtl.RequestFocus
+	Else
+		EditEmployeeID.RequestFocus
+	End If 
+	
+End Sub
+
+Sub Activity_Pause (UserClosed As Boolean)
+
+End Sub
+
+
+Sub EditOrderCtl_EnterPressed
+ If EmpId <> "" Then
+	If EditOrderCtl.Text <> "" Then
+		callorderscan
+	End If
+Else
+	Msgbox("Enter Employee First","Alert") 
+	EditOrderCtl.text = "" 
+	LabOrderCtl.Text = ""
+	EditEmployeeID.RequestFocus
+	
+	End If
+End Sub
+
+Sub EditEmployeeID_EnterPressed
+If EditEmployeeID.Text <> "" Then
+	callempname
+		ProgressDialogShow ("Connecting to Server ...")
+End If
+	
+End Sub
+
+Sub ButOpen_Click
+	
+If EmpId <> "" Then	
+	
+	
+	If   OrderNo <> "" Then
+	
+	
+	StartActivity("main2")
+	
+	
+	Else
+	Msgbox("Invalid Order Scanned","Alert")
+	End If
+Else
+		Msgbox("Invalid Employee Scanned","Alert")
+End If 
+End Sub
+Sub JobDone (Job As HttpJob)
+	Dim s As String
+	ProgressDialogHide
+	If Job.Success = True Then
+		Log("Yeaahh")
+		Select Job.JobName
+			Case "JobEmpScan"
+				s = Job.GetString
+				ParsJSON(s,"1")
+			Case "JobOrderScan"
+				s = Job.GetString
+				ParsJSON(s,"2")
+			Case "acceptfccard"
+				s = Job.GetString
+			Dim returnstring() As String
+			
+				returnstring = Regex.Split(CRLF,s)
+			
+			
+			Msgbox(returnstring(0),"")	
+				Msgbox(returnstring(1),"")
+				
+				'ParsJSON(s,"2")
+		End Select
+		
+		
+	Else
+		
+		
+		
+		Msgbox(Job.ErrorMessage & " rescan" ,"Alert:"&Job.JobName)
+		
+		If Job.JobName = "JobEmpScan" Then 
+			 EditEmployeeID.Text = ""
+			 EditEmployeeID.RequestFocus
+		End If
+		
+		If Job.JobName = "JobOrderScan" Then
+			EditOrderCtl.Text = ""
+			EditOrderCtl.RequestFocus
+		End If
+		
+		
+		Log("Buuuh")
+	End If
+	Job.Release
+End Sub
+Sub ParsJSON (jsonstring As String,jobtype As String)
+	Log(jsonstring)
+'	Dim a,b As Int
+	'a = jsonstring.IndexOf("[")
+	'b = jsonstring.LastIndexOf("]")
+	'jsonstring = jsonstring.SubString2(a, b+1)
+
+	Dim parser As JSONParser
+	Dim Localparts() As String
+	parser.Initialize(jsonstring)
+	Dim Map1 As Map
+	Map1 = parser.NextObject
+	Dim m As List
+	m = Map1.Get("items")
+
+	
+	If jobtype = "1" Then
+	
+	If m.Size > 0 Then 
+		    Map1 = m.get(0)
+		Log(Map1.get("employee_id"))
+		EmpId = Map1.get("employee_id")
+	    LabEmpName.Text = Map1.get("employee_name")
+			EditOrderCtl.RequestFocus
+		Else
+		LabEmpName.Text = "Invalid Employee ID Scanned"
+		EditEmployeeID.Text = "" 
+		EmpId = ""
+			EditEmployeeID.RequestFocus
+	End If
+	End If
+	If jobtype = "2" Then
+		If m.Size > 0 Then
+	        Map1 = m.get(0)
+			Log(Map1.get("result"))
+			'EmpId = Map1.get("employee_id")
+			'Laborderctl.Text = Map1.get("employee_name")
+		
+			
+			Localparts = Regex.Split("~", Map1.get("result"))
+			
+			
+			If Localparts(0)= "SUCCESS" Then
+			   OrderNo = Localparts(1)
+			   FurnaceCardNo = Localparts(2)
+				EditOrderCtl.Text = ""
+				LabOrderCtl.Text = OrderNo & " Valid Order"
+				Parts =  Localparts
+				
+				If Localparts(24) = "1" Then 
+					Msgbox("INSCAN DONE","")
+					OrderNo = ""
+					FurnaceCardNo = ""
+					EditOrderCtl.Text = ""
+					LabOrderCtl.Text =""
+	
+					EditEmployeeID.Text = ""
+					EmpId = ""
+					LabEmpName.Text = ""
+					
+						EditEmployeeID.RequestFocus
+				
+					
+				End If
+				
+				If Localparts(24) = "2" Then
+					StartActivity(main2)
+				End If
+				
+				
+				If Localparts(24) = "3" Then
+					Msgbox("ALL SCANS ARE DONE","")
+					StartActivity(main2)
+				End If
+				
+				
+			
+			End If
+			
+			If Localparts(0)= "FAILURE" Then
+			     OrderNo = ""
+				FurnaceCardNo = ""
+				EditOrderCtl.Text = ""
+				LabOrderCtl.Text = "Invalid Scan"
+			End If
+			
+	   End If
+	End If
+	
+
+
+
+	
+End Sub
+Sub callempname
+	Dim s As String
+	Dim job1 As HttpJob
+	s = empscanurl&EditEmployeeID.Text
+	job1.Initialize("JobEmpScan", Me)
+	job1.Download(s )
+
+End Sub
+
+Sub callorderscan
+	Dim s As String
+	Dim job2 As HttpJob
+	s = ordscanurl&EditOrderCtl.Text&"~"&EditEmployeeID.Text
+	'job2.Initialize("JobOrderScan", Me)
+	job2.Initialize("JobOrderScan", Me)
+	job2.Download(s)
+End Sub
+ 
+
+
+Sub EditEmployeeID_FocusChanged (HasFocus As Boolean)
+	
+	
+End Sub
+
+
+
+Sub Button1_Click '' test button
+'	Dim Localparts() As String
+	'Localparts = Regex.Split("~","1~'2'~'3'~~~~~~~end")
+	Dim s As String
+	Dim job1 As HttpJob
+	Dim jsonmap As Map
+	jsonmap.Initialize
+	's = Main.accepturl & Main.parts(1) & "~" & Main.parts(2) & "~" & Main.parts(21) & "~" & Main.parts(14) & "~" & Main.parts(15)
+	job1.Initialize("acceptfccard", Me)
+	'job1.Download2(Main.accepturl,Main.parts )
+	'job1.Download2(Main.accepturl,)
+	'job1.(Main.updateurl,("dsdds"))
+	jsonmap.Put("ORDER_NUMBER","121212")
+	jsonmap.Put("FC_NO","1D")
+	Dim JSONGenerator As JSONGenerator
+	JSONGenerator.Initialize(jsonmap)
+	'Msgbox(JSONGenerator.ToPrettyString(2), "")
+	
+	
+	job1.PostString(updateurl,JSONGenerator.ToPrettyString(2))
+	job1.GetRequest.SetContentType("application/json")
+'	Dim Data As List
+'	Data.Initialize
+'	Data.Add(1)
+'	Data.Add(2)
+'	Data.Add(3)
+'	'Data.Add(Map1) 'add the previous map loaded from the file.
+'	Dim map1 As Map
+'	
+'	map1.Put("12121","121212121")
+'	
+'	Data.Add(map1)
+'	
+'	
+'	Dim JSONGenerator As JSONGenerator
+'	JSONGenerator.Initialize2(Data)
+'	Msgbox(JSONGenerator.ToPrettyString(2), "")
+End Sub
+
+Sub ButSettings_Click
+	StartActivity(settingsApp)
+End Sub
+'Sub Settings_Click
+'	StartActivity(settingsApp)
+'End Sub
+
+Sub Button2_Click
+	StartActivity(main2)
+End Sub
